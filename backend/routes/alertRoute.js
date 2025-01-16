@@ -1,6 +1,9 @@
+import express from "express";
 import nodemailer from "nodemailer";
 import cron from "node-cron";
+import pool from "../db.js";
 
+const router = express.Router();
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -12,10 +15,15 @@ const transporter = nodemailer.createTransport({
 async function getCurrentPrice(symbol) {
   try {
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price/${symbol}`
+      `https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd&include_24hr_change=true&include_last_updated_at=true`,
+      {
+        headers: {
+          "x-cg-demo-api-key": process.env.COINGECKO_API_KEY,
+        },
+      }
     );
     const data = await response.json();
-    return data.price;
+    return data[symbol]?.usd || null;
   } catch (error) {
     console.error("Error fetching price:", error);
     throw error;
@@ -152,3 +160,5 @@ router.delete("/alerts/:id", async (req, res) => {
     return res.status(500).json({ error: "Failed to deactivate alert" });
   }
 });
+
+export default router;
